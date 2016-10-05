@@ -2,6 +2,7 @@
 #include <ctime>
 #include "main.h"
 #include "preview.h"
+#include <chrono>
 
 GLuint positionLocation = 0;
 GLuint texcoordsLocation = 1;
@@ -168,11 +169,20 @@ bool init() {
     return true;
 }
 
-void mainLoop() {
+void mainLoop() {	
+	auto start = std::chrono::system_clock::now();
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         runCuda();
+		auto end   = std::chrono::system_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		if (iteration == 100) {
 
+			FILE *fp = fopen("time.txt", "w+");
+			fprintf(fp, "%d\n", duration.count());
+			fclose(fp);
+		}
         string title = "CIS565 Path Tracer | " + utilityCore::convertIntToString(iteration) + " Iterations";
         glfwSetWindowTitle(window, title.c_str());
 

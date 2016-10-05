@@ -1,6 +1,7 @@
 #include "main.h"
 #include "preview.h"
 #include <cstring>
+#include <chrono>
 
 static std::string startTimeString;
 
@@ -70,6 +71,7 @@ int main(int argc, char** argv) {
     init();
 
     // GLFW main loop
+
     mainLoop();
 
     return 0;
@@ -99,6 +101,7 @@ void saveImage() {
 }
 
 void runCuda() {
+
     if (camchanged) {
         iteration = 0;
         Camera &cam = renderState->camera;
@@ -144,6 +147,7 @@ void runCuda() {
         cudaDeviceReset();
         exit(EXIT_SUCCESS);
     }
+
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -178,12 +182,12 @@ void mousePositionCallback(GLFWwindow* window, double xpos, double ypos) {
     // compute new camera parameters
     phi -= (xpos - lastX) / width;
     theta -= (ypos - lastY) / height;
-    theta = std::fmax(0.001f, std::fmin(theta, PI));
+    theta = std::max(0.001f, std::min(theta, PI));
     camchanged = true;
   }
   else if (rightMousePressed) {
     zoom += (ypos - lastY) / height;
-    zoom = std::fmax(0.1f, zoom);
+    zoom = std::max(0.1f, zoom);
     camchanged = true;
   }
   else if (middleMousePressed) {
