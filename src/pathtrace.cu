@@ -76,6 +76,7 @@ static glm::vec3 * dev_image = NULL;
 static Geom * dev_geoms = NULL;
 static Material * dev_materials = NULL;
 static PathSegment * dev_paths = NULL;
+static PathSegment * dev_cachePaths = NULL;
 static ShadeableIntersection * dev_intersections = NULL;
 static bool * dev_flag = NULL;
 // TODO: static variables for device memory, any extra info you need, etc
@@ -90,6 +91,7 @@ void pathtraceInit(Scene *scene) {
 	cudaMemset(dev_image, 0, pixelcount * sizeof(glm::vec3));
 
 	cudaMalloc(&dev_paths, pixelcount * sizeof(PathSegment));
+	cudaMalloc(&dev_cachePaths, pixelcount * sizeof(PathSegment));
 
 	cudaMalloc(&dev_geoms, scene->geoms.size() * sizeof(Geom));
 	cudaMemcpy(dev_geoms, scene->geoms.data(), scene->geoms.size() * sizeof(Geom), cudaMemcpyHostToDevice);
@@ -113,6 +115,7 @@ void pathtraceFree() {
 	cudaFree(dev_intersections);
 	// TODO: clean up any extra device memory you created
 	cudaFree(dev_flag);
+	cudaFree(dev_cachePaths);
 	checkCUDAError("pathtraceFree");
 }
 
@@ -348,10 +351,36 @@ void compressedPathandIntersection(int& num_paths, PathSegment *paths, bool *fla
 	thrust::remove_if(dev_ptrPaths, dev_ptrPaths + num_paths, dev_ptrFlag, thrust::logical_not<bool>());
 	num_paths = thrust::count_if(dev_ptrFlag, dev_ptrFlag + num_paths, thrust::identity<bool>());
 }
+
+// Sort by materialId
+typedef thrust::tuple<PathSegment, ShadeableIntersection> Tuple;
+class cmp
+{
+public:
+	__host__ __device__ bool operator()(const Tuple &a, const Tuple &b)
+	{
+		return a.get<1>().materialId < b.get<1>().materialId;
+	}
+};
+
+void SortByMaterial(int num_paths, PathSegment *dev_paths, ShadeableIntersection *dev_intersections)
+{
+	thrust::device_ptr<PathSegment> ptrPath(dev_paths);
+	thrust::device_ptr<ShadeableIntersection> ptrIntersection(dev_intersections);
+	
+	typedef thrust::tuple<thrust::device_ptr<PathSegment>, thrust::device_ptr<ShadeableIntersection>> IteratorTuple;
+	typedef thrust::zip_iterator<IteratorTuple> ZipIterator;
+	ZipIterator zip_begin = thrust::make_zip_iterator(thrust::make_tuple(ptrPath, ptrIntersection));
+	ZipIterator zip_end = zip_begin + num_paths;
+	thrust::sort(zip_begin, zip_end, cmp());
+}
 /**
 * Wrapper for the __global__ call that sets up the kernel calls and does a ton
 * of memory management
 */
+float total=0.0f;
+int counter = 0;
+bool first = true;
 void pathtrace(uchar4 *pbo, int frame, int iter) {
 	const int traceDepth = hst_scene->state.traceDepth;
 	const Camera &cam = hst_scene->state.camera;
@@ -397,9 +426,13 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 	//   for you.
 
 	// TODO: perform one iteration of path tracing
-
-	generateRayFromCamera <<<blocksPerGrid2d, blockSize2d >>>(cam, iter, traceDepth, dev_paths);
-	checkCUDAError("generate camera ray");
+	if (first)
+	{
+		generateRayFromCamera <<<blocksPerGrid2d, blockSize2d >>>(cam, iter, traceDepth, dev_cachePaths);
+		checkCUDAError("generate camera ray");
+		first = false;
+	}
+	cudaMemcpy(dev_paths, dev_cachePaths, pixelcount * sizeof(PathSegment), cudaMemcpyDeviceToDevice);
 
 	int depth = 0;
 	PathSegment* dev_path_end = dev_paths + pixelcount;
@@ -438,7 +471,12 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		// materials you have in the scenefile.
 		// TODO: compare between directly shading the path segments and shading
 		// path segments that have been reshuffled to be contiguous in memory.
-
+		//SortByMaterial(num_paths, dev_paths, dev_intersections);
+//float time_elapsed=0;
+//cudaEvent_t start,stop;
+//cudaEventCreate(&start);
+//cudaEventCreate(&stop);
+//cudaEventRecord( start,0);
 		shadeRealMaterial<<<numblocksPathSegmentTracing, blockSize1d>>> (
 			iter,
 			num_paths,
@@ -448,6 +486,14 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 			dev_flag,
 			dev_image
 			);
+//cudaEventRecord( stop,0);
+//cudaEventSynchronize(start);
+//cudaEventSynchronize(stop);
+//cudaEventElapsedTime(&time_elapsed,start,stop);
+//total+=time_elapsed;
+//counter++;
+
+
 		compressedPathandIntersection(num_paths, dev_paths, dev_flag);
 		//printf("numpaths:%d\n", num_paths);
 		if (!num_paths)
@@ -459,7 +505,12 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 	//finalGather<<<numBlocksPixels, blockSize1d>>>(num_paths, dev_image, dev_paths);
 
 	///////////////////////////////////////////////////////////////////////////
-
+//if (iter == 100)
+//{
+//FILE *fp = fopen("shadeTime.txt", "a+");
+//fprintf(fp, "%f\n", total / counter);
+//fclose(fp);
+//}
 	// Send results to OpenGL buffer for rendering
 	sendImageToPBO<<<blocksPerGrid2d, blockSize2d>>>(pbo, cam.resolution, iter, dev_image);
 

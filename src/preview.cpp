@@ -179,7 +179,7 @@ void mainLoop() {
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 		if (iteration == 100) {
 
-			FILE *fp = fopen("time.txt", "w+");
+			FILE *fp = fopen("time.txt", "a+");
 			fprintf(fp, "%d\n", duration.count());
 			fclose(fp);
 		}
