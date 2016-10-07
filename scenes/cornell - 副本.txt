@@ -65,7 +65,7 @@ UP          0 1 0
 OBJECT 0
 cube
 material 0
-TRANS       0 10 -10
+TRANS       0 10 0
 ROTAT       0 0 0
 SCALE       3 .3 3
 
@@ -75,7 +75,7 @@ cube
 material 1
 TRANS       0 0 0
 ROTAT       0 0 0
-SCALE       10 .01 100
+SCALE       10 .01 10
 
 // Ceiling
 OBJECT 2
@@ -83,13 +83,13 @@ cube
 material 1
 TRANS       0 10 0
 ROTAT       0 0 90
-SCALE       .01 10 100
+SCALE       .01 10 10
 
 // Back wall
 OBJECT 3
 cube
 material 1
-TRANS       0 5 -50
+TRANS       0 5 -5
 ROTAT       0 90 0
 SCALE       .01 10 10
 
@@ -99,7 +99,7 @@ cube
 material 2
 TRANS       -5 5 0
 ROTAT       0 0 0
-SCALE       .01 10 100
+SCALE       .01 10 10
 
 // Right wall
 OBJECT 5
@@ -107,28 +107,12 @@ cube
 material 3
 TRANS       5 5 0
 ROTAT       0 0 0
-SCALE       .01 10 100
+SCALE       .01 10 10
 
 // Sphere
 OBJECT 6
 sphere
 material 4
-TRANS       -1 4 -11
+TRANS       -1 4 -1
 ROTAT       0 0 0
 SCALE       3 3 3
-
-// Sphere
-OBJECT 7
-sphere
-material 4
-TRANS       1 4 2
-ROTAT       0 0 0
-SCALE       3 3 3
-
-// Ceiling light
-OBJECT 8
-cube
-material 0
-TRANS       0 10 0
-ROTAT       0 0 0
-SCALE       3 .3 3

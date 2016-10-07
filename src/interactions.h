@@ -67,7 +67,7 @@ glm::vec3 calculateRandomDirectionInHemisphere(
  * You may need to change the parameter list for your purposes!
  */
 
-#define SHIFT 0.01f
+#define SHIFT 0.1f
 __host__ __device__
 void scatterRay(
 		PathSegment & pathSegment,

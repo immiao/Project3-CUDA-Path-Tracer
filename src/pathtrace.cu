@@ -17,6 +17,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/scan.h>
+#include <ctime>
 
 #define ERRORCHECK 1
 
@@ -140,13 +141,54 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
 		segment.color = glm::vec3(1.0f, 1.0f, 1.0f);
 
 		// TODO: implement antialiasing by jittering the ray
-		segment.ray.direction = glm::normalize(cam.view
-			- cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f)
-			- cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f)
-			);
-
+		segment.ray.direction = cam.view
+			+ cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f)
+			+ cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f);
+		
+		
 		segment.pixelIndex = index;
 		segment.remainingBounces = traceDepth;
+
+		// depth of field
+		cam.lensDistance = 2.0f;
+		cam.focalDistance = 19.5f;
+		cam.lensRadius = 10.0f;
+
+		glm::vec3 lensCentralPoint = cam.position + cam.lensDistance * cam.view;
+		glm::vec3 pointOnScreen = segment.ray.origin + segment.ray.direction;
+		glm::vec3 pointOnLens = segment.ray.origin + cam.lensDistance * segment.ray.direction;
+		glm::vec3 centralDirection = lensCentralPoint - pointOnScreen;
+		glm::vec3 pointOnFocalPlane = pointOnScreen + centralDirection / (cam.lensDistance - 1.0f) * (cam.focalDistance + cam.lensDistance - 1.0f);
+		//glm::vec3 temp = centralDirection / (cam.lensDistance - 1.0f);
+		//printf("%f %f %f\n", segment.ray.direction[0], segment.ray.direction[1], segment.ray.direction[2]);
+		//glm::vec3 pointOnFocalPlane = pointOnScreen + glm::normalize(centralDirection) * (cam.focalDistance + cam.lensDistance - 1.0f);
+		glm::vec3 newDirection = pointOnFocalPlane - pointOnLens;
+
+		glm::vec3 direction = glm::normalize(cam.view
+				- cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f)
+				- cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f)
+				);
+		if (glm::length(pointOnLens - lensCentralPoint) <= cam.lensRadius)
+		{
+			thrust::default_random_engine rng = makeSeededRandomEngine(iter, x + y, 0);
+			thrust::uniform_real_distribution<float> u01(0, 1);
+			float t = u01(rng);
+			
+			segment.ray.origin = pointOnLens;
+			segment.ray.direction = glm::normalize(glm::normalize(newDirection) * (1 - t) + direction * t);
+			//segment.ray.direction = glm::slerp(glm::(glm::normalize(newDirection), 0.0f), glm::vec4(direction, 0.0f), t);
+
+
+		}
+		else
+		{
+			segment.ray.origin = cam.position;
+			segment.ray.direction = glm::normalize(cam.view
+				- cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f)
+				- cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f)
+				);
+		}
+		//segment.ray.direction.g = -
 	}
 }
 
@@ -380,7 +422,6 @@ void SortByMaterial(int num_paths, PathSegment *dev_paths, ShadeableIntersection
 */
 float total=0.0f;
 int counter = 0;
-bool first = true;
 void pathtrace(uchar4 *pbo, int frame, int iter) {
 	const int traceDepth = hst_scene->state.traceDepth;
 	const Camera &cam = hst_scene->state.camera;
@@ -426,11 +467,10 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 	//   for you.
 
 	// TODO: perform one iteration of path tracing
-	if (first)
+	if (iter == 1)
 	{
 		generateRayFromCamera <<<blocksPerGrid2d, blockSize2d >>>(cam, iter, traceDepth, dev_cachePaths);
 		checkCUDAError("generate camera ray");
-		first = false;
 	}
 	cudaMemcpy(dev_paths, dev_cachePaths, pixelcount * sizeof(PathSegment), cudaMemcpyDeviceToDevice);
 
