@@ -128,8 +128,10 @@ void pathtraceFree() {
 * motion blur - jitter rays "in time"
 * lens effect - jitter ray origin positions based on a lens
 */
+
 __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, PathSegment* pathSegments)
 {
+	bool depthOfField = false;
 	int x = (blockIdx.x * blockDim.x) + threadIdx.x;
 	int y = (blockIdx.y * blockDim.y) + threadIdx.y;
 
@@ -149,25 +151,28 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
 		segment.pixelIndex = index;
 		segment.remainingBounces = traceDepth;
 
-		// depth of field
-		cam.lensDistance = 2.0f;
-		cam.focalDistance = 4.0f;
-		cam.lensRadius = 10.0f;
+		if (depthOfField)
+		{
+			// depth of field
+			cam.lensDistance = 2.0f;
+			cam.focalDistance = 4.0f;
+			cam.lensRadius = 10.0f;
 
-		glm::vec3 pointOnFocalPlane = segment.ray.origin + cam.focalDistance * segment.ray.direction;
-		glm::vec3 pointOnScreen = segment.ray.origin + segment.ray.direction;
-		thrust::default_random_engine rngx = makeSeededRandomEngine(iter, x, 0);
-		thrust::default_random_engine rngy = makeSeededRandomEngine(iter, y, 0);
-		thrust::uniform_real_distribution<float> u01(0, 1);
-		float jitterx = (u01(rngx) - 0.5) * 2 / 40.0f;
-		float jittery = (u01(rngy) - 0.5) * 2 / 40.0f;
-		//if (x + y == 10)
-		//	printf("%f\n", u01(rngx));
-		pointOnScreen += cam.right * jitterx + cam.up * jittery;
+			glm::vec3 pointOnFocalPlane = segment.ray.origin + cam.focalDistance * segment.ray.direction;
+			glm::vec3 pointOnScreen = segment.ray.origin + segment.ray.direction;
+			thrust::default_random_engine rngx = makeSeededRandomEngine(iter, x, 0);
+			thrust::default_random_engine rngy = makeSeededRandomEngine(iter, y, 0);
+			thrust::uniform_real_distribution<float> u01(0, 1);
+			float jitterx = (u01(rngx) - 0.5) * 2 / 40.0f;
+			float jittery = (u01(rngy) - 0.5) * 2 / 40.0f;
+			//if (x + y == 10)
+			//	printf("%f\n", u01(rngx));
+			pointOnScreen += cam.right * jitterx + cam.up * jittery;
 
-		segment.ray.origin = pointOnScreen;
-		segment.ray.direction = glm::normalize(pointOnFocalPlane - pointOnScreen);
-
+			segment.ray.origin = pointOnScreen;
+			segment.ray.direction = pointOnFocalPlane - pointOnScreen;
+		}
+		segment.ray.direction = glm::normalize(segment.ray.direction);
 		//glm::vec3 lensCentralPoint = cam.position + cam.lensDistance * cam.view;
 		//glm::vec3 pointOnScreen = segment.ray.origin + segment.ray.direction;
 		//glm::vec3 pointOnLens = segment.ray.origin + cam.lensDistance * segment.ray.direction;

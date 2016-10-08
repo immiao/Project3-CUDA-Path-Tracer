@@ -78,7 +78,7 @@ void scatterRay(
     // TODO: implement this.
     // A basic implementation of pure-diffuse shading will just call the
     // calculateRandomDirectionInHemisphere defined above.
-	if (glm::dot(pathSegment.ray.direction, normal) > 0.0f)
+	if (glm::dot(pathSegment.ray.direction, normal) > 0.0f && m.hasRefractive <= 0.001f)
 	{
 		pathSegment.color = glm::vec3(0.0f);
 		pathSegment.remainingBounces = 0;
@@ -99,6 +99,46 @@ void scatterRay(
 	{
 		pathSegment.color *= m.color * m.emittance;
 		pathSegment.remainingBounces = 0;
+	}
+	else if (m.hasRefractive > 0.0f)
+	{
+		float R0;
+		float n1 = 1.0f, n2 = 1.5f;
+		pathSegment.ray.origin = intersect;
+		float cosTheta = glm::dot(pathSegment.ray.direction, normal);
+		float eta;
+		glm::vec3 realNormal;
+		if (cosTheta > 0.0f) // glass to air
+		{
+			realNormal = -normal;
+			eta = n2 / n1;
+			R0 = (n2 - n1) / (n2 + n1) * (n2 - n1) / (n2 + n1);
+		}
+		else // air to glass
+		{
+			realNormal = normal;
+			eta = n1 / n2;
+			R0 = (n1 - n2) / (n1 + n2) * (n1 - n2) / (n1 + n2);
+			cosTheta = -cosTheta; // ensure cos to be positive
+		}
+		float R = R0 + (1 - R0) * pow(1 - cosTheta, 5);
+		thrust::uniform_real_distribution<float> u01(0, 1);
+		float randomNum = u01(rng);
+		if (randomNum < R)
+		{
+			pathSegment.ray.direction = -2 * glm::dot(pathSegment.ray.direction, realNormal) * realNormal + pathSegment.ray.direction;
+		}
+		else
+		{
+			pathSegment.ray.direction = glm::refract(pathSegment.ray.direction, realNormal, eta);
+		}
+		//glm::vec3 test1(1.0f, 1.0f, 0.0f);
+		//glm::vec3 testNormal(-1.0f, 0.0f, 0.0f);
+		//glm::vec3 result = glm::refract(test1, testNormal, n1 / n2);
+		//printf("result:%f %f %f\n",result[0] ,result[1], result[2]);
+		pathSegment.ray.origin = intersect + pathSegment.ray.direction * SHIFT;
+		pathSegment.ray.direction = glm::normalize(pathSegment.ray.direction);
+		pathSegment.remainingBounces--;
 	}
 	else
 	{
