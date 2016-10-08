@@ -113,7 +113,7 @@ SCALE       .01 10 100
 OBJECT 6
 sphere
 material 4
-TRANS       -1 4 -11
+TRANS       -1 4 -28
 ROTAT       0 0 0
 SCALE       3 3 3
 
@@ -121,14 +121,46 @@ SCALE       3 3 3
 OBJECT 7
 sphere
 material 4
-TRANS       1 4 2
+TRANS       -1 4 -14
+ROTAT       0 0 0
+SCALE       3 3 3
+
+// Sphere
+OBJECT 8
+sphere
+material 4
+TRANS       -1 4 -4
+ROTAT       0 0 0
+SCALE       3 3 3
+
+// Sphere
+OBJECT 9
+sphere
+material 4
+TRANS       -1 4 2
+ROTAT       0 0 0
+SCALE       3 3 3
+
+// Sphere
+OBJECT 10
+sphere
+material 4
+TRANS       -1 4 8
 ROTAT       0 0 0
 SCALE       3 3 3
 
 // Ceiling light
-OBJECT 8
+OBJECT 11
 cube
 material 0
-TRANS       0 10 0
+TRANS       0 10 4
+ROTAT       0 0 0
+SCALE       3 .3 3
+
+// Ceiling light
+OBJECT 12
+cube
+material 0
+TRANS       0 10 -28
 ROTAT       0 0 0
 SCALE       3 .3 3
