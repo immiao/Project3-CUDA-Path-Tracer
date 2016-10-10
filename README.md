@@ -16,6 +16,7 @@ Testing depth of field:
 ![](./img/d.png)
 
 Mirror:
+
 ![](./img/f.png)
 
 No direct lighting:
