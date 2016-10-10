@@ -114,7 +114,7 @@ SCALE       .01 10 10
 // Right wall
 OBJECT 5
 cube
-material 3
+material 4
 TRANS       5 5 0
 ROTAT       0 0 0
 SCALE       .01 10 10
@@ -146,7 +146,7 @@ SCALE       3 3 3
 // Sphere
 OBJECT 9
 sphere
-material 2
+material 3
 TRANS       0 2.5 0.5
 TRANSEND	0.8 1.5 0.5
 ROTAT       0 0 0

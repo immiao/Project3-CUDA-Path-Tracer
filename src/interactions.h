@@ -68,7 +68,7 @@ glm::vec3 calculateRandomDirectionInHemisphere(
  * You may need to change the parameter list for your purposes!
  */
 
-#define SHIFT 0.05f
+#define SHIFT 0.02f
 __host__ __device__
 void scatterRay(
 		PathSegment & pathSegment,
@@ -89,7 +89,7 @@ void scatterRay(
 	{
 		pathSegment.ray.origin = intersect;
 		pathSegment.ray.direction = -2 * glm::dot(pathSegment.ray.direction, normal) * normal + pathSegment.ray.direction;
-		pathSegment.ray.direction = calculateRandomDirectionInHemisphere(normal, rng);
+		//pathSegment.ray.direction = calculateRandomDirectionInHemisphere(normal, rng);
 		pathSegment.ray.direction = glm::normalize(pathSegment.ray.direction);
 		pathSegment.ray.origin = intersect + pathSegment.ray.direction * SHIFT;
 		//pathSegment.color *= m.hasReflective;

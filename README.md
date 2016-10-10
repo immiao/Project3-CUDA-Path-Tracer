@@ -9,14 +9,19 @@ CUDA Path Tracer
 Final image:
 ![](./img/a.png)
 
-No direct lighting:
-![](./img/e.png)
-
 No depth of field:
 ![](./img/b.png)
 
 Testing depth of field:
 ![](./img/d.png)
+
+Mirror:
+![](./img/f.png)
+
+No direct lighting:
+![](./img/e.png)
+
+
 
 ## Features
 
@@ -125,7 +130,7 @@ Jittering the rays based on a focal plane:
 
 * **Direct lighting**
 
-Sending a ray at the last bounce:
+Sending a ray to the light source at the last bounce:
 
 	// direct lighting
 	if (pathSegment.remainingBounces == 1)

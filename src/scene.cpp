@@ -3,6 +3,7 @@
 #include <cstring>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include "tiny_obj_loader.h""
 
 Scene::Scene(string filename) {
     cout << "Reading scene from " << filename << " ..." << endl;
@@ -27,9 +28,51 @@ Scene::Scene(string filename) {
             } else if (strcmp(tokens[0].c_str(), "CAMERA") == 0) {
                 loadCamera();
                 cout << " " << endl;
-            }
+			} else if (strcmp(tokens[0].c_str(), "TINYOBJECT") == 0) {
+				loadObject(tokens[1]);
+				cout << " " << endl;
+			}
         }
     }
+}
+
+int Scene::loadObject(string filename)
+{
+	bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str());
+	if (!err.empty()) { // `err` may contain warning message.
+		std::cerr << err << std::endl;
+	}
+
+	if (!ret) {
+		return -1;
+	}
+
+	// Loop over shapes
+	for (size_t s = 0; s < shapes.size(); s++) {
+		// Loop over faces(polygon)
+		size_t index_offset = 0;
+		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+			int fv = shapes[s].mesh.num_face_vertices[f];
+
+			// Loop over vertices in the face.
+			for (size_t v = 0; v < fv; v++) {
+				// access to vertex
+				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+				float vx = attrib.vertices[3*idx.vertex_index+0];
+				float vy = attrib.vertices[3*idx.vertex_index+1];
+				float vz = attrib.vertices[3*idx.vertex_index+2];
+				float nx = attrib.normals[3*idx.normal_index+0];
+				float ny = attrib.normals[3*idx.normal_index+1];
+				float nz = attrib.normals[3*idx.normal_index+2];
+				float tx = attrib.texcoords[2*idx.texcoord_index+0];
+				float ty = attrib.texcoords[2*idx.texcoord_index+1];
+			}
+			index_offset += fv;
+
+			// per-face material
+			shapes[s].mesh.material_ids[f];
+		}
+	}
 }
 
 int Scene::loadGeom(string objectid) {
