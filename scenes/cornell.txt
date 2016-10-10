@@ -139,6 +139,15 @@ SCALE       3 3 3
 OBJECT 8
 sphere
 material 5
-TRANS       -3 5 0
+TRANS       -3.5 4 3.5
+ROTAT       0 0 0
+SCALE       3 3 3
+
+// Sphere
+OBJECT 9
+sphere
+material 2
+TRANS       0 2.5 0.5
+TRANSEND	0.8 1.5 0.5
 ROTAT       0 0 0
 SCALE       3 3 3

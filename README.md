@@ -1,13 +1,46 @@
 CUDA Path Tracer
 ================
 
-**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 3**
+* Kaixiang Miao
+* Tested on: Windows 7, i7-3630QM @ 2.40GHz 8GB, GTX 660M 2GB (Lenovo Y580 laptop, personal computer)
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+## Screenshot
 
-### (TODO: Your README)
+Final image:
+![](./img/a.png)
 
-*DO NOT* leave the README to the last minute! It is a crucial part of the
-project, and we will not be able to grade you without a good README.
+No direct lighting:
+![](./img/e.png)
+
+No depth of field:
+![](./img/b.png)
+
+Testing depth of field:
+![](./img/d.png)
+
+## Features
+
+* **Ideal diffuse surface && perfectly specular-reflective**
+* **Stream compaction using thrust::remove_if**
+
+	void compressedPathandIntersection(int& num_paths, PathSegment *paths, bool *flag)
+	{
+		thrust::device_ptr<bool> dev_ptrFlag(flag);
+		thrust::device_ptr<PathSegment> dev_ptrPaths(paths);
+		thrust::remove_if(dev_ptrPaths, dev_ptrPaths + num_paths, dev_ptrFlag, thrust::logical_not<bool>());
+		num_paths = thrust::count_if(dev_ptrFlag, dev_ptrFlag + num_paths, thrust::identity<bool>());
+	}
+
+
+* **Sorted rays by material index**
+* **Caching the first bounce intersections**
+* **Frensel effect**
+* **Depth of field**
+* **Direct lighting**
+* **Motion blur**
+
+
+
+
+
 

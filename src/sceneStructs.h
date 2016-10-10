@@ -20,7 +20,8 @@ struct Ray {
 struct Geom {
     enum GeomType type;
     int materialid;
-    glm::vec3 translation;
+    glm::vec3 translationStart;
+	glm::vec3 translationEnd;
     glm::vec3 rotation;
     glm::vec3 scale;
     glm::mat4 transform;
@@ -50,9 +51,7 @@ struct Camera {
     glm::vec2 fov;
     glm::vec2 pixelLength;
 
-	float lensRadius;
 	float focalDistance;
-	float lensDistance;
 };
 
 struct RenderState {
@@ -68,6 +67,8 @@ struct PathSegment {
 	glm::vec3 color;
 	int pixelIndex;
 	int remainingBounces;
+
+	float dTime;
 };
 
 // Use with a corresponding PathSegment to do:

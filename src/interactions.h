@@ -1,6 +1,7 @@
 #pragma once
 
 #include "intersections.h"
+#include "pathtrace.h"
 
 // CHECKITOUT
 /**
@@ -67,7 +68,7 @@ glm::vec3 calculateRandomDirectionInHemisphere(
  * You may need to change the parameter list for your purposes!
  */
 
-#define SHIFT 0.1f
+#define SHIFT 0.05f
 __host__ __device__
 void scatterRay(
 		PathSegment & pathSegment,
@@ -102,29 +103,24 @@ void scatterRay(
 	}
 	else if (m.hasRefractive > 0.0f)
 	{
-		float R0;
 		float n1 = 1.0f, n2 = 1.5f;
 		pathSegment.ray.origin = intersect;
-		float cosTheta = glm::dot(pathSegment.ray.direction, normal);
+		float cosTheta = glm::dot(pathSegment.ray.direction, normal); // function "sphereIntersectionTest" has been modified and the normal is always pointing from inside to outside
 		float eta;
 		glm::vec3 realNormal;
 		if (cosTheta > 0.0f) // glass to air
 		{
 			realNormal = -normal;
 			eta = n2 / n1;
-			R0 = (n2 - n1) / (n2 + n1) * (n2 - n1) / (n2 + n1);
 		}
 		else // air to glass
 		{
 			realNormal = normal;
 			eta = n1 / n2;
-			R0 = (n1 - n2) / (n1 + n2) * (n1 - n2) / (n1 + n2);
 			cosTheta = -cosTheta; // ensure cos to be positive
 		}
-		float R = R0 + (1 - R0) * pow(1 - cosTheta, 5);
 		thrust::uniform_real_distribution<float> u01(0, 1);
-		float randomNum = u01(rng);
-		if (randomNum < R)
+		if (u01(rng) < (n2 - n1) / (n2 + n1) * (n2 - n1) / (n2 + n1) + (1 - (n2 - n1) / (n2 + n1) * (n2 - n1) / (n2 + n1)) * pow(1 - cosTheta, 5))
 		{
 			pathSegment.ray.direction = -2 * glm::dot(pathSegment.ray.direction, realNormal) * realNormal + pathSegment.ray.direction;
 		}
