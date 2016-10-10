@@ -524,7 +524,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		(cam.resolution.y + blockSize2d.y - 1) / blockSize2d.y);
 
 	// 1D block for path tracing
-	const int blockSize1d = 128;
+	const int blockSize1d = 1024;
 
 
 	///////////////////////////////////////////////////////////////////////////
@@ -590,7 +590,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 	// Shoot ray into scene, bounce between objects, push shading chunks
 
 	bool iterationComplete = false;
-	bool firstLoop = true;
+	//bool firstLoop = true;
 	while (!iterationComplete) {
 		dim3 numblocksPathSegmentTracing = (num_paths + blockSize1d - 1) / blockSize1d;
 		// clean shading chunks
@@ -658,6 +658,12 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		//printf("numpaths:%d\n", num_paths);
 		if (!num_paths)
 			iterationComplete = true; // TODO: should be based off stream compaction results.
+if (iter == 1)
+{
+FILE *fp = fopen("compress.txt", "a+");
+fprintf(fp, "%d\n", num_paths);
+fclose(fp);
+}
 	}
 
 	// Assemble this iteration and apply it to the image
