@@ -3,6 +3,7 @@
 #include <cstring>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/intersect.hpp>
 #include "tiny_obj_loader.h""
 
 Scene::Scene(string filename) {
@@ -38,7 +39,21 @@ Scene::Scene(string filename) {
 
 int Scene::loadObject(string filename)
 {
-	bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str());
+	glm::vec3 transform;
+	string line;
+	utilityCore::safeGetline(fp_in, line);
+	while (!line.empty() && fp_in.good()) {
+		vector<string> tokens = utilityCore::tokenizeString(line);
+
+		//load tranformations
+		if (strcmp(tokens[0].c_str(), "TRANS") == 0) {
+			transform = glm::vec3(atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
+			
+		}
+		utilityCore::safeGetline(fp_in, line);
+	}
+
+	bool ret = tinyobj::LoadObj(&attrib, &shapes, &tinyMaterials, &err, filename.c_str());
 	if (!err.empty()) { // `err` may contain warning message.
 		std::cerr << err << std::endl;
 	}
@@ -52,6 +67,10 @@ int Scene::loadObject(string filename)
 		// Loop over faces(polygon)
 		size_t index_offset = 0;
 		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+			Geom newGeom;
+			newGeom.type = TRIANGLE;
+			int index = 0;
+
 			int fv = shapes[s].mesh.num_face_vertices[f];
 
 			// Loop over vertices in the face.
@@ -66,13 +85,47 @@ int Scene::loadObject(string filename)
 				float nz = attrib.normals[3*idx.normal_index+2];
 				float tx = attrib.texcoords[2*idx.texcoord_index+0];
 				float ty = attrib.texcoords[2*idx.texcoord_index+1];
+
+				newGeom.triangleVert[index][0] = vx;
+				newGeom.triangleVert[index][1] = vy;
+				newGeom.triangleVert[index][2] = vz;
+				index++;
 			}
 			index_offset += fv;
 
 			// per-face material
 			shapes[s].mesh.material_ids[f];
+
+			newGeom.translationStart = transform;
+			newGeom.translationEnd = transform;
+			newGeom.scale = glm::vec3(1.0f, 1.0f, 1.0f);
+			newGeom.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+			//printf("HERE:%f %f %f\n", newGeom.translationStart[0],newGeom.translationStart[1],newGeom.translationStart[2]);
+			newGeom.transform = utilityCore::buildTransformationMatrix(newGeom.translationStart, newGeom.rotation, newGeom.scale);
+			newGeom.inverseTransform = glm::inverse(newGeom.transform);
+			newGeom.invTranspose = glm::inverseTranspose(newGeom.transform);
+			newGeom.materialid = 5;
+			//printf("HERE:%f %f %f\n", newGeom.triangleVert[0],newGeom.triangleVert[1],newGeom.triangleVert[2]);
+			geoms.push_back(newGeom);
 		}
 	}
+	//glm::vec3 tmpVert[3];
+	//tmpVert[0] = glm::vec3(0.856825, 0.579656, 0.0f);
+	//tmpVert[1] = glm::vec3(0.856825, 0.579656, 0.0f);
+	//tmpVert[2] = glm::vec3(0.856825, 5.579656, 0.0f);
+	//glm::vec3 ori(0.0, 5, 10.5);
+	//glm::vec3 direction(0.0f, 0.0f, -1.0f);
+	//glm::vec3 result;
+	//bool flag = glm::intersectRayTriangle(ori, direction, tmpVert[0], tmpVert[1], tmpVert[2], result);
+	//if (flag)
+	//{
+
+	//	glm::vec3 tt = ori + direction * result[2];
+	//	glm::vec3 tt2 = tmpVert[0] * (1 - result[0] - result[1]) + tmpVert[1] * result[0] + tmpVert[2] * result[1];
+	//	printf("RESULT:%f %f %f\n",result[0], result[1], result[2]);
+	//	printf("RESULT:%f %f %f\n%f %f %f\n\n", tt[0], tt[1], tt[2], tt2[0], tt2[1], tt2[2]);
+	//}
+	printf("GEOM:%d\n", sizeof(Geom));
 }
 
 int Scene::loadGeom(string objectid) {

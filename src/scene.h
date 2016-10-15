@@ -7,6 +7,7 @@
 #include "glm/glm.hpp"
 #include "utilities.h"
 #include "sceneStructs.h"
+#include "tiny_obj_loader.h"
 
 using namespace std;
 
@@ -25,7 +26,7 @@ public:
     std::vector<Material> materials;
 
 	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
+	std::vector<tinyobj::material_t> tinyMaterials;
 	tinyobj::attrib_t attrib;
 	std::string err;
     RenderState state;

@@ -124,6 +124,8 @@ void pathtraceInit(Scene *scene) {
 	}
 	cudaMemcpy(dev_lightIndex, lightTemp, lightCounter * sizeof(int), cudaMemcpyHostToDevice);
 
+	//printf("SIZE:%d\n", scene->geoms.size());
+
 }
 
 void pathtraceFree() {
@@ -247,10 +249,13 @@ __global__ void computeIntersections(
 	, int lightSize
 	)
 {
+	
 	int path_index = blockIdx.x * blockDim.x + threadIdx.x;
-
+	//printf("%d %d %d\n", num_paths, geoms_size, lightSize);
 	if (path_index < num_paths)
-	{
+	{	
+		//if (path_index==0)
+		//	printf("size:%d %d\n", path_index, num_paths);
 		PathSegment pathSegment = pathSegments[path_index];
 
 		float t;
@@ -305,14 +310,15 @@ __global__ void computeIntersections(
 			for (int i = 0; i < geoms_size; i++)
 			{
 				Geom & geom = geoms[i];
-
+				//if (geom.type == TRIANGLE)
+				//	printf("HERE:%f %f %f\n", geom.translationStart[0],geom.translationStart[1],geom.translationStart[2]);
 				// update position of the geometry based on ray's time
 				glm::vec3 interpolatedPos = (1 - pathSegment.dTime) * geom.translationStart + pathSegment.dTime * geom.translationEnd;
 				geom.transform = cudaBuildTransformationMatrix(interpolatedPos, geom.rotation, geom.scale);
 				geom.inverseTransform = glm::inverse(geom.transform);
 				geom.invTranspose = glm::inverseTranspose(geom.transform);
 
-				//if (i == 9)
+				//if (i == 11 && geom.type == TRIANGLE)
 				//{
 				//	printf("%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n\n", 
 				//		geom.transform[0][0], geom.transform[0][1], geom.transform[0][2], geom.transform[0][3],
@@ -320,7 +326,7 @@ __global__ void computeIntersections(
 				//		geom.transform[2][0], geom.transform[2][1], geom.transform[2][2], geom.transform[2][3],
 				//		cudaBuildTransformationMatrix(interpolatedPos, geom.rotation, geom.scale)[3][0], cudaBuildTransformationMatrix(interpolatedPos, geom.rotation, geom.scale)[3][1], cudaBuildTransformationMatrix(interpolatedPos, geom.rotation, geom.scale)[3][2], geom.transform[3][3]);
 				//}
-
+				//glm::vec3 intersectTriangle;
 
 				if (geom.type == CUBE)
 				{
@@ -329,6 +335,44 @@ __global__ void computeIntersections(
 				else if (geom.type == SPHERE)
 				{
 					t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+				}
+				else if (geom.type == TRIANGLE)
+				{
+						//printf("%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n\n", 
+						//geom.transform[0][0], geom.transform[0][1], geom.transform[0][2], geom.transform[0][3],
+						//geom.transform[1][0], geom.transform[1][1], geom.transform[1][2], geom.transform[1][3],
+						//geom.transform[2][0], geom.transform[2][1], geom.transform[2][2], geom.transform[2][3],
+						//geom.transform[3][0], geom.transform[3][1], geom.transform[3][2], geom.transform[3][3]);
+					glm::vec3 tmpVert[3];
+					glm::vec3 result;
+					tmpVert[0] = glm::vec3(geom.transform * glm::vec4(geom.triangleVert[0], 1.0f));
+					tmpVert[1] = glm::vec3(geom.transform * glm::vec4(geom.triangleVert[1], 1.0f));
+					tmpVert[2] = glm::vec3(geom.transform * glm::vec4(geom.triangleVert[2], 1.0f));
+					//pathSegment.ray.direction = glm::normalize(pathSegment.ray.direction);
+					bool flag = glm::intersectRayTriangle(pathSegment.ray.origin, pathSegment.ray.direction, tmpVert[0], tmpVert[1], tmpVert[2], result);
+					if (flag)
+					{
+						t = result[2];
+						tmp_intersect = pathSegment.ray.origin + (t) * pathSegment.ray.direction;
+
+						
+						glm::vec3 test(tmpVert[0] * (1 - result[0] - result[1])+result[0] * tmpVert[1]+ result[1] * tmpVert[2]);
+						//t = glm::length(test - pathSegment.ray.origin);
+						////test[2] = 0;
+						//intersect_point = test;
+						//printf("t:%f %f\n", t, glm::length(intersect_point - pathSegment.ray.origin));
+						//printf("p1:%f %f %f\np2:%f %f %f\n\n", tmp_intersect[0], tmp_intersect[1], tmp_intersect[2],
+						//	test[0], test[1], test[2]);
+						tmp_normal = glm::normalize(glm::cross(tmpVert[1] - tmpVert[0], tmpVert[2] - tmpVert[0]));
+						//tmp_normal = glm::cross(tmpVert[1] - tmpVert[0], tmpVert[2] - tmpVert[0]);
+
+						//printf("tri1:%f %f %f\ntri2:%f %f %f\ntri3:%f %f %f\nINTERSECT:%f %f %f\n\n", tmpVert[0][0], tmpVert[0][1], tmpVert[0][2],
+						//	tmpVert[1][0], tmpVert[1][1], tmpVert[1][2],
+						//	tmpVert[2][0], tmpVert[2][1], tmpVert[2][2],
+						//	intersect_point[0], intersect_point[1], intersect_point[2]);
+					}
+					else
+						t = -1;
 				}
 				// TODO: add more intersection tests here... triangle? metaball? CSG?
 
@@ -340,7 +384,12 @@ __global__ void computeIntersections(
 					hit_geom_index = i;
 					intersect_point = tmp_intersect;
 					normal = tmp_normal;
+					//				if (geom.type == TRIANGLE)
+					//printf("%f\n", t_min);
+					//if (geom.type == TRIANGLE)
+					//printf("p1:%f %f %f\n", intersect_point[0], intersect_point[1], intersect_point[2]);
 				}
+
 			}
 		}
 
@@ -524,7 +573,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		(cam.resolution.y + blockSize2d.y - 1) / blockSize2d.y);
 
 	// 1D block for path tracing
-	const int blockSize1d = 1024;
+	const int blockSize1d = 128;
 
 
 	///////////////////////////////////////////////////////////////////////////
@@ -616,6 +665,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 				, dev_lightIndex
 				, lightCounter
 				);
+			//cudaStreamQuery(0);
 			checkCUDAError("trace one bounce");
 			cudaDeviceSynchronize();
 		}
@@ -658,12 +708,12 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		//printf("numpaths:%d\n", num_paths);
 		if (!num_paths)
 			iterationComplete = true; // TODO: should be based off stream compaction results.
-if (iter == 1)
-{
-FILE *fp = fopen("compress.txt", "a+");
-fprintf(fp, "%d\n", num_paths);
-fclose(fp);
-}
+//if (iter == 1)
+//{
+//FILE *fp = fopen("compress.txt", "a+");
+//fprintf(fp, "%d\n", num_paths);
+//fclose(fp);
+//}
 	}
 
 	// Assemble this iteration and apply it to the image

@@ -81,6 +81,8 @@ void scatterRay(
     // calculateRandomDirectionInHemisphere defined above.
 	if (glm::dot(pathSegment.ray.direction, normal) > 0.0f && m.hasRefractive <= 0.001f)
 	{
+		//if (abs(m.color.g - 0.85f) < 0.01f && pathSegment.remainingBounces == 8)
+		//	printf("WHY\n");
 		pathSegment.color = glm::vec3(0.0f);
 		pathSegment.remainingBounces = 0;
 		return;
